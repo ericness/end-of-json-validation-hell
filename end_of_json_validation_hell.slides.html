@@ -7489,7 +7489,13 @@ main {
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="Extracting-Data-from-Unstructured-Input">Extracting Data from Unstructured Input<a class="anchor-link" href="#Extracting-Data-from-Unstructured-Input">¶</a></h2><ul>
 <li>Many use cases need to extract structured data from unstructured input</li>
-<li>Could include emails, documents, images, audio and so forth</li>
+<li>Often occurs when data is coming from external sources before entering organization's tech landscape<ul>
+<li>Outside sources could be documents, images, emails, and so forth</li>
+<li>Need to be translated into the structured data that internal systems require</li>
+</ul>
+</li>
+<li>Previously handled by users or complex ML systems</li>
+<li>In the last 3 years LLMs have enabled a wide-spread solution</li>
 <li>Typically the output format is JSON</li>
 </ul>
 </div>
@@ -7502,9 +7508,11 @@ main {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Problems-with-Using-Only-Prompting">Problems with Using Only Prompting<a class="anchor-link" href="#Problems-with-Using-Only-Prompting">¶</a></h2><ul>
+<h2 id="Prompt-Only-Approach">Prompt-Only Approach<a class="anchor-link" href="#Prompt-Only-Approach">¶</a></h2><ul>
+<li>Uses prompts to describe the task and the desired output schema</li>
 <li>Doesn't guarantee correct schema due to probabilistic nature of LLM output</li>
 <li>Even 99% accuracy on schema isn't sufficient for many production applications</li>
+<li>Invalid instances need to be handled manually or through an exception process</li>
 </ul>
 </div>
 </div>
@@ -7529,7 +7537,7 @@ main {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [18]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">"SetFit/bbc-news"</span><span class="p">)</span>
@@ -7580,7 +7588,7 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [19]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">sample_text</span> <span class="o">=</span> <span class="n">combined_df</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -7622,7 +7630,7 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [20]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ArticleCategory</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
@@ -7660,7 +7668,7 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [21]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">NamedEntity</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -7688,6 +7696,43 @@ Text length mean: 2288.95
 </div>
 </div>
 </div>
+</div></section></section><section><section><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=15d20f4c">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [22]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">EXTRACTION_PROMPT</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="s2">Read the news article below and extract the information into a</span>
+<span class="s2">JSON object. This is the schema you should use to extract the</span>
+<span class="s2">data. It's provided in standard JSON Schema format.</span>
+
+<span class="s2">```json</span>
+<span class="si">{news_article_schema}</span>
+<span class="s2">```</span>
+
+<span class="s2">Here is the news article to generate the JSON data for. The article</span>
+<span class="s2">is surrounded by triple backticks.</span>
+
+<span class="s2">```</span>
+<span class="si">{news_article}</span>
+<span class="s2">```</span>
+
+<span class="s2">Format your response as a JSON object surrounded by triple backticks</span>
+<span class="s2">with the 'json' identifier like this:</span>
+<span class="s2">```json</span>
+<span class="s2">your JSON object here</span>
+<span class="s2">```</span>
+
+<span class="s2">Be sure to follow the provided schema exactly.</span>
+<span class="s2">"""</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
 </div></section></section><section><section>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a04c4a31">
 <div class="jp-Cell-inputWrapper" tabindex="0">
@@ -7704,7 +7749,7 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [13]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [23]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">news_article_schema</span> <span class="o">=</span> <span class="n">NewsArticle</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span>
@@ -7804,43 +7849,6 @@ Text length mean: 2288.95
   "type": "object"
 }
 </pre>
-</div>
-</div>
-</div>
-</div>
-</div></section></section><section><section><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=15d20f4c">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [14]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">EXTRACTION_PROMPT</span> <span class="o">=</span> <span class="s2">"""</span>
-<span class="s2">Read the news article below and extract the information into a</span>
-<span class="s2">JSON object. This is the schema you should use to extract the</span>
-<span class="s2">data. It's provided in standard JSON Schema format.</span>
-
-<span class="s2">```json</span>
-<span class="si">{news_article_schema}</span>
-<span class="s2">```</span>
-
-<span class="s2">Here is the news article to generate the JSON data for. The article</span>
-<span class="s2">is surrounded by triple backticks.</span>
-
-<span class="s2">```</span>
-<span class="si">{news_article}</span>
-<span class="s2">```</span>
-
-<span class="s2">Format your response as a JSON object surrounded by triple backticks</span>
-<span class="s2">with the 'json' identifier like this:</span>
-<span class="s2">```json</span>
-<span class="s2">your JSON object here</span>
-<span class="s2">```</span>
-
-<span class="s2">Be sure to follow the provided schema exactly.</span>
-<span class="s2">"""</span>
-</pre></div>
 </div>
 </div>
 </div>
@@ -7947,7 +7955,7 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">generate_and_visualize_json</span><span class="p">(</span><span class="n">article_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -7982,10 +7990,10 @@ Text length mean: 2288.95
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [19]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">response</span> <span class="o">=</span> <span class="n">generate_and_visualize_json</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">response</span> <span class="o">=</span> <span class="n">generate_and_visualize_json</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8005,13 +8013,13 @@ Text length mean: 2288.95
         color: #fff;
         padding: 6px 10px;
         border-radius: 6px;
-        font-size: 13px;
+        font-size: 26px;
         z-index: 1000;
         pointer-events: none;
         white-space: pre;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         display: none;
-        max-width: 350px;
+        max-width: 500px;
     }
     </style>
 <script>
@@ -8064,52 +8072,45 @@ JSON: 0.000
 
 : 0.000
     
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;"><br/></span><span class="json-token" data-tooltip="{
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;"><br/></span><span 0.000"="" :="" class="json-token" data-tooltip="{
 : 1.000
  {
 : 0.000
 {: 0.000
 {
 : 0.000
-{
-
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;">{<br/></span><span class="json-token" data-tooltip=" : 1.000
+{" style="background-color: rgb(0, 104, 55); color: white;">{<br/></span><span class="json-token" data-tooltip=" : 1.000
    : 0.000
   : 0.000
 	: 0.000
  : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> </span><span "$:="" "title:="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" title:="" “:=""> "</span><span class="json-token" data-tooltip="title: 1.000
  title: 0.000
 category: 0.000
-.title: 0.000
-Title: 0.000" style="background-color: rgb(0, 104, 55); color: white;">title</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "[:="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="Broad: 0.991
-BT: 0.009
-b: 0.000
-Bro: 0.000
-Broadcast: 0.000" style="background-color: rgb(2, 107, 56); color: white;">Broad</span><span class="json-token" data-tooltip="band: 1.000
-Band: 0.000
-bands: 0.000
-b: 0.000
- band: 0.000" style="background-color: rgb(0, 104, 55); color: white;">band</span><span class="json-token" data-tooltip=" Set: 0.995
- set: 0.005
- to: 0.000
- Revolution: 0.000
- is: 0.000" style="background-color: rgb(1, 105, 55); color: white;"> Set</span><span class="json-token" data-tooltip=" to: 1.000
- To: 0.000
- for: 0.000
-to: 0.000
-To: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> to</span><span class="json-token" data-tooltip=" Revolution: 1.000
- Revol: 0.000
- revolution: 0.000
- Rev: 0.000
- Revolutionary: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Revolution</span><span class="json-token" data-tooltip="ise: 0.996
-ize: 0.004
-ISE: 0.000
-ised: 0.000
-aise: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ise</span><span class="json-token" data-tooltip=" TV: 1.000
- Television: 0.000
- Tv: 0.000
- TVs: 0.000
-TV: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> TV</span><span ,="" -:="" 0.000="" 0.000"="" 0.001="" 0.999="" :="" ::="" as:="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" with:="">",<br/></span><span class="json-token" data-tooltip=" : 1.000
+length: 0.000
+Title: 0.000" style="background-color: rgb(0, 104, 55); color: white;">title</span><span ":="" ":":="" 0.000="" 0.000"="" 1.000="" :="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "[:="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="Speak: 0.980
+Easy: 0.012
+Voice: 0.007
+Speech: 0.001
+New: 0.000" style="background-color: rgb(5, 113, 59); color: white;">Speak</span><span class="json-token" data-tooltip=" Easy: 1.000
+ easy: 0.000
+Easy: 0.000
+ Eas: 0.000
+-E: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Easy</span><span class="json-token" data-tooltip=" Plan: 1.000
+:: 0.000
+ Plans: 0.000
+ plan: 0.000
+ Voice: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Plan</span><span class="json-token" data-tooltip=" for: 1.000
+ For: 0.000
+:: 0.000
+ Allows: 0.000
+ to: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> for</span><span class="json-token" data-tooltip=" Media: 1.000
+ Digital: 0.000
+ Voice: 0.000
+ Music: 0.000
+ Control: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Media</span><span ,="" 0.000="" 0.000"="" :="" class="json-token" data-tooltip=" Players: 1.000
+:: 0.000
+ Player: 0.000
+" players:="" style="background-color: rgb(0, 104, 55); color: white;"> Players</span><span ,="" 0.000="" 0.000"="" 0.001="" 0.999="" :="" ::="" allows:="" ann:="" class="json-token" data-tooltip="" music:="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip=" : 1.000
   : 0.000
   
 : 0.000
@@ -8118,10 +8119,10 @@ TV: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> TV</span><s
  category: 0.000
 summary: 0.000
 categories: 0.000
-	category: 0.000" style="background-color: rgb(0, 104, 55); color: white;">category</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" {="" “:=""> "</span><span class="json-token" data-tooltip="tech: 0.998
-ent: 0.002
-business: 0.000
+	category: 0.000" style="background-color: rgb(0, 104, 55); color: white;">category</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" {="" “:=""> "</span><span class="json-token" data-tooltip="tech: 0.999
+ent: 0.000
 technology: 0.000
+business: 0.000
  tech: 0.000" style="background-color: rgb(0, 104, 55); color: white;">tech</span><span ",="" ",:="" ',="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span 0.000"="" :="" class="json-token" data-tooltip=" : 1.000
   : 0.000
   
@@ -8131,179 +8132,214 @@ technology: 0.000
 mentioned: 0.001
 summ: 0.000
 mention: 0.000
- summary: 0.000" style="background-color: rgb(0, 104, 55); color: white;">summary</span><span ":="" ":":="" 0.000="" 0.000"="" 1.000="" :="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "<:="" "[:="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="BT: 1.000
-As: 0.000
-Tele: 0.000
-Bt: 0.000
- BT: 0.000" style="background-color: rgb(0, 104, 55); color: white;">BT</span><span class="json-token" data-tooltip=" is: 0.999
- starts: 0.000
- begins: 0.000
- plans: 0.000
-'s: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> is</span><span class="json-token" data-tooltip=" starting: 0.960
- beginning: 0.020
- moving: 0.006
- pushing: 0.004
- launching: 0.003" style="background-color: rgb(10, 122, 64); color: white;"> starting</span><span class="json-token" data-tooltip=" its: 0.986
- to: 0.014
- a: 0.000
- into: 0.000
- plans: 0.000" style="background-color: rgb(3, 109, 57); color: white;"> its</span><span class="json-token" data-tooltip=" push: 1.000
- move: 0.000
+ summary: 0.000" style="background-color: rgb(0, 104, 55); color: white;">summary</span><span ":="" ":":="" 0.000="" 0.000"="" 1.000="" :="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "(:="" "[:="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="Two: 0.653
+Media: 0.240
+US: 0.037
+Music: 0.025
+Plans: 0.025" style="background-color: rgb(189, 226, 120); color: black;">Two</span><span class="json-token" data-tooltip=" US: 0.998
+ U: 0.002
+ firms: 0.000
+ companies: 0.000
+ us: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> US</span><span class="json-token" data-tooltip=" firms: 0.999
+ companies: 0.001
+ tech: 0.000
+ technology: 0.000
+ Firms: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> firms</span><span class="json-token" data-tooltip=",: 0.998
+ are: 0.002
+ Sc: 0.000
+ develop: 0.000
+ Scan: 0.000" style="background-color: rgb(0, 104, 55); color: white;">,</span><span class="json-token" data-tooltip=" Sc: 0.997
+ Scan: 0.003
+ scans: 0.000
+Sc: 0.000
+ scan: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Sc</span><span class="json-token" data-tooltip="ans: 0.996
+anso: 0.002
+anc: 0.000
+anos: 0.000
+anning: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ans</span><span class="json-token" data-tooltip="oft: 1.000
+ oft: 0.000
+soft: 0.000
+ource: 0.000
+hift: 0.000" style="background-color: rgb(0, 104, 55); color: white;">oft</span><span class="json-token" data-tooltip=" and: 1.000
+,: 0.000
+ &amp;: 0.000
+and: 0.000
+ и: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> and</span><span class="json-token" data-tooltip=" Gr: 1.000
+ Grace: 0.000
+ gr: 0.000
+Gr: 0.000
+ G: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Gr</span><span class="json-token" data-tooltip="acen: 1.000
+ac: 0.000
+acem: 0.000
+acent: 0.000
+ancen: 0.000" style="background-color: rgb(0, 104, 55); color: white;">acen</span><span class="json-token" data-tooltip="ote: 1.000
+otes: 0.000
+ode: 0.000
+one: 0.000
+ot: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ote</span><span class="json-token" data-tooltip=",: 1.000
+ are: 0.000
+.: 0.000
+,
+: 0.000
+ have: 0.000" style="background-color: rgb(0, 104, 55); color: white;">,</span><span class="json-token" data-tooltip=" are: 1.000
+ develop: 0.000
+ plan: 0.000
+are: 0.000
+ developing: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> are</span><span class="json-token" data-tooltip=" developing: 1.000
+ working: 0.000
+ collaborating: 0.000
+ creating: 0.000
+ in: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> developing</span><span class="json-token" data-tooltip=" voice: 0.622
+ technology: 0.377
+ a: 0.001
+ new: 0.000
+ technologies: 0.000" style="background-color: rgb(205, 233, 131); color: black;"> voice</span><span class="json-token" data-tooltip=" control: 0.946
+-controlled: 0.047
+ command: 0.005
+-control: 0.001
+ technology: 0.000" style="background-color: rgb(13, 128, 67); color: white;"> control</span><span class="json-token" data-tooltip=" technology: 1.000
+ technologies: 0.000
+ tech: 0.000
  for: 0.000
- shift: 0.000
- initiative: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> push</span><span class="json-token" data-tooltip=" into: 1.000
- to: 0.000
- in: 0.000
- towards: 0.000
-into: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> into</span><span class="json-token" data-tooltip=" television: 1.000
- offering: 0.000
- TV: 0.000
- providing: 0.000
- delivering: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> television</span><span class="json-token" data-tooltip=" with: 0.865
- by: 0.133
-,: 0.002
- over: 0.000
- offering: 0.000" style="background-color: rgb(51, 164, 86); color: white;"> with</span><span class="json-token" data-tooltip=" plans: 1.000
- a: 0.000
- new: 0.000
- the: 0.000
- an: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> plans</span><span class="json-token" data-tooltip=" to: 1.000
- for: 0.000
- of: 0.000
- offering: 0.000
- over: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> to</span><span class="json-token" data-tooltip=" offer: 1.000
- deliver: 0.000
- provide: 0.000
- distribute: 0.000
- use: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> offer</span><span class="json-token" data-tooltip=" TV: 0.999
- IPTV: 0.000
- tv: 0.000
- it: 0.000
- content: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> TV</span><span class="json-token" data-tooltip=" over: 1.000
- via: 0.000
- services: 0.000
- through: 0.000
- content: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> over</span><span class="json-token" data-tooltip=" broadband: 1.000
- Broadband: 0.000
- broad: 0.000
- bandwidth: 0.000
- its: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> broadband</span><span class="json-token" data-tooltip=",: 0.717
-.: 0.206
- as: 0.076
- and: 0.001
- while: 0.000" style="background-color: rgb(154, 212, 104); color: black;">,</span><span class="json-token" data-tooltip=" moving: 0.516
- aiming: 0.313
- as: 0.054
- marking: 0.023
- transitioning: 0.023" style="background-color: rgb(248, 252, 181); color: black;"> moving</span><span class="json-token" data-tooltip=" towards: 0.522
- to: 0.461
- toward: 0.014
- into: 0.003
- from: 0.001" style="background-color: rgb(246, 251, 179); color: black;"> towards</span><span class="json-token" data-tooltip=" a: 1.000
- an: 0.000
- content: 0.000
- being: 0.000
- becoming: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> a</span><span class="json-token" data-tooltip=" content: 1.000
- new: 0.000
- distribution: 0.000
- strategy: 0.000
- more: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> content</span><span class="json-token" data-tooltip=" distribution: 1.000
- delivery: 0.000
--dis: 0.000
- strategy: 0.000
- dissemination: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> distribution</span><span class="json-token" data-tooltip=" strategy: 1.000
- model: 0.000
- approach: 0.000
- and: 0.000
-strategy: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> strategy</span><span class="json-token" data-tooltip=".: 0.813
- as: 0.052
- to: 0.040
-,: 0.040
- and: 0.022" style="background-color: rgb(90, 183, 96); color: black;">.</span><span class="json-token" data-tooltip=" The: 0.859
- This: 0.038
- Both: 0.026
- Andrew: 0.023
- With: 0.011" style="background-color: rgb(57, 167, 87); color: white;"> The</span><span class="json-token" data-tooltip=" BBC: 0.972
- article: 0.016
- company: 0.005
- B: 0.004
- corporation: 0.001" style="background-color: rgb(7, 117, 61); color: white;"> BBC</span><span class="json-token" data-tooltip=" is: 0.998
- also: 0.001
-'s: 0.000
- and: 0.000
- trials: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> is</span><span class="json-token" data-tooltip=" also: 0.977
- trial: 0.023
- testing: 0.000
- similarly: 0.000
- exploring: 0.000" style="background-color: rgb(5, 113, 59); color: white;"> also</span><span class="json-token" data-tooltip=" trial: 0.989
- exploring: 0.005
- testing: 0.004
- experimenting: 0.001
- involved: 0.000" style="background-color: rgb(2, 107, 56); color: white;"> trial</span><span class="json-token" data-tooltip="ling: 0.986
-ing: 0.014
-iling: 0.000
-lining: 0.000
-lng: 0.000" style="background-color: rgb(3, 109, 57); color: white;">ling</span><span class="json-token" data-tooltip=" a: 0.949
- broadband: 0.015
- IPTV: 0.011
- its: 0.007
- services: 0.006" style="background-color: rgb(13, 128, 67); color: white;"> a</span><span class="json-token" data-tooltip=" service: 0.729
- broadband: 0.144
- similar: 0.127
- new: 0.000
- program: 0.000" style="background-color: rgb(147, 208, 103); color: black;"> service</span><span class="json-token" data-tooltip=" to: 0.791
- for: 0.200
-,: 0.003
- that: 0.002
- and: 0.001" style="background-color: rgb(107, 191, 99); color: black;"> to</span><span class="json-token" data-tooltip=" play: 0.908
- deliver: 0.075
- stream: 0.010
- provide: 0.003
- offer: 0.002" style="background-color: rgb(23, 147, 77); color: white;"> play</span><span class="json-token" data-tooltip=" programmes: 0.940
- programs: 0.060
- programming: 0.000
- TV: 0.000
- programme: 0.000" style="background-color: rgb(15, 132, 69); color: white;"> programmes</span><span class="json-token" data-tooltip=" over: 0.997
- online: 0.002
- via: 0.000
- through: 0.000
- on: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> over</span><span class="json-token" data-tooltip=" the: 1.000
- net: 0.000
- broadband: 0.000
- IP: 0.000
- internet: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> the</span><span class="json-token" data-tooltip=" net: 0.835
- internet: 0.164
- Internet: 0.001
- web: 0.000
- Net: 0.000" style="background-color: rgb(75, 175, 92); color: black;"> net</span><span ,="" 0.005"="" :="" class="json-token" data-tooltip=",: 0.470
-.: 0.470
- and: 0.023
- as: 0.023
-." style="background-color: rgb(254, 245, 175); color: black;">,</span><span class="json-token" data-tooltip=" aiming: 0.279
- with: 0.116
- which: 0.090
- indicating: 0.080
- and: 0.062" style="background-color: rgb(251, 159, 90); color: black;"> aiming</span><span class="json-token" data-tooltip=" to: 0.932
- for: 0.068
+technology: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> technology</span><span class="json-token" data-tooltip=" for: 0.672
+ to: 0.193
+ that: 0.132
+ allowing: 0.002
+ enabling: 0.000" style="background-color: rgb(179, 222, 114); color: black;"> for</span><span class="json-token" data-tooltip=" digital: 0.968
+ media: 0.029
+ accessing: 0.002
+ music: 0.001
+ users: 0.000" style="background-color: rgb(8, 119, 62); color: white;"> digital</span><span class="json-token" data-tooltip=" media: 1.000
+ music: 0.000
+ audio: 0.000
+ film: 0.000
+ multimedia: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> media</span><span class="json-token" data-tooltip=" players: 1.000
+ libraries: 0.000
+ that: 0.000
+,: 0.000
+ devices: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> players</span><span class="json-token" data-tooltip=",: 0.792
+ that: 0.107
+ to: 0.095
+ allowing: 0.005
+.: 0.001" style="background-color: rgb(107, 191, 99); color: black;">,</span><span class="json-token" data-tooltip=" allowing: 0.900
+ enabling: 0.095
+ aiming: 0.005
+ aimed: 0.000
+ which: 0.000" style="background-color: rgb(25, 151, 79); color: white;"> allowing</span><span class="json-token" data-tooltip=" users: 0.988
+ hands: 0.010
+ music: 0.002
+ access: 0.000
+ easy: 0.000" style="background-color: rgb(3, 109, 57); color: white;"> users</span><span class="json-token" data-tooltip=" to: 0.995
+ hands: 0.005
+ easy: 0.000
+ access: 0.000
+ easier: 0.000" style="background-color: rgb(1, 105, 55); color: white;"> to</span><span class="json-token" data-tooltip=" access: 0.959
+ control: 0.026
+ manage: 0.009
+ easily: 0.004
+ navigate: 0.001" style="background-color: rgb(10, 122, 64); color: white;"> access</span><span class="json-token" data-tooltip=" their: 0.781
+ music: 0.197
+ film: 0.014
+ films: 0.006
+ and: 0.001" style="background-color: rgb(114, 194, 100); color: black;"> their</span><span class="json-token" data-tooltip=" music: 0.863
+ film: 0.132
+ media: 0.004
+ libraries: 0.001
+ movie: 0.000" style="background-color: rgb(54, 165, 87); color: white;"> music</span><span class="json-token" data-tooltip=" and: 1.000
+ libraries: 0.000
+ collections: 0.000
+ or: 0.000
+ &amp;: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> and</span><span class="json-token" data-tooltip=" film: 0.991
+ films: 0.005
+ movie: 0.004
+ movies: 0.000
+ video: 0.000" style="background-color: rgb(2, 107, 56); color: white;"> film</span><span class="json-token" data-tooltip=" libraries: 0.996
+ collections: 0.004
+ library: 0.000
+libraries: 0.000
+ Libraries: 0.000" style="background-color: rgb(1, 105, 55); color: white;"> libraries</span><span class="json-token" data-tooltip=" hands: 0.931
+ simply: 0.028
+ by: 0.025
+ just: 0.008
+ through: 0.004" style="background-color: rgb(17, 136, 71); color: white;"> hands</span><span class="json-token" data-tooltip="-free: 1.000
+-f: 0.000
+ free: 0.000
+-Free: 0.000
+free: 0.000" style="background-color: rgb(0, 104, 55); color: white;">-free</span><span ,="" ,:="" 0.010"="" 0.017="" 0.075="" 0.263="" :="" by:="" class="json-token" data-tooltip=".: 0.631
+." style="background-color: rgb(201, 232, 128); color: black;" while:="">.</span><span class="json-token" data-tooltip=" This: 0.730
+ The: 0.268
+ Users: 0.001
+ Ross: 0.000
+ Voice: 0.000" style="background-color: rgb(147, 208, 103); color: black;"> This</span><span class="json-token" data-tooltip=" innovation: 0.537
+ technology: 0.369
+ will: 0.027
+ advancement: 0.024
+ new: 0.016" style="background-color: rgb(240, 249, 171); color: black;"> innovation</span><span class="json-token" data-tooltip=" aims: 0.932
+ is: 0.028
+ promises: 0.019
+ will: 0.013
+ could: 0.006" style="background-color: rgb(17, 136, 71); color: white;"> aims</span><span class="json-token" data-tooltip=" to: 1.000
  at: 0.000
- towards: 0.000
- innov: 0.000" style="background-color: rgb(17, 136, 71); color: white;"> to</span><span class="json-token" data-tooltip=" innovate: 0.483
- deliver: 0.228
- provide: 0.178
- give: 0.045
- enhance: 0.040" style="background-color: rgb(254, 249, 181); color: black;"> innovate</span><span class="json-token" data-tooltip=" with: 0.612
- in: 0.289
- and: 0.073
- within: 0.014
- TV: 0.003" style="background-color: rgb(211, 236, 135); color: black;"> with</span><span class="json-token" data-tooltip=" IPTV: 0.892
- broadband: 0.073
- IP: 0.014
- the: 0.005
- this: 0.003" style="background-color: rgb(30, 154, 81); color: white;"> IPTV</span><span class="json-token" data-tooltip=" technology: 0.727
-,: 0.087
- as: 0.036
- and: 0.036
-.: 0.028" style="background-color: rgb(147, 208, 103); color: black;"> technology</span><span ,="" ,:="" .:="" 0.061"="" 0.165="" 0.187="" 0.272="" :="" class="json-token" data-tooltip="." style="background-color: rgb(250, 154, 88); color: black;" that:="" which:="">.",<br/></span><span 0.000"="" :="" class="json-token" data-tooltip=" : 1.000
+ for: 0.000
+ enhance: 0.000
+ particularly: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> to</span><span class="json-token" data-tooltip=" enhance: 0.867
+ improve: 0.055
+ transform: 0.034
+ change: 0.026
+ simplify: 0.009" style="background-color: rgb(48, 162, 85); color: white;"> enhance</span><span class="json-token" data-tooltip=" the: 0.957
+ car: 0.020
+ in: 0.009
+ user: 0.009
+ entertainment: 0.002" style="background-color: rgb(11, 124, 65); color: white;"> the</span><span class="json-token" data-tooltip=" car: 0.684
+ entertainment: 0.135
+ in: 0.093
+ media: 0.030
+ user: 0.021" style="background-color: rgb(175, 220, 111); color: black;"> car</span><span class="json-token" data-tooltip=" entertainment: 0.998
+ and: 0.002
+ experience: 0.000
+ ent: 0.000
+-ent: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> entertainment</span><span class="json-token" data-tooltip=" experience: 1.000
+ system: 0.000
+ experiences: 0.000
+ and: 0.000
+ environment: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> experience</span><span class="json-token" data-tooltip=" and: 0.666
+ by: 0.245
+,: 0.062
+ without: 0.014
+ while: 0.007" style="background-color: rgb(183, 224, 117); color: black;"> and</span><span class="json-token" data-tooltip=" make: 0.473
+ simplify: 0.174
+ provide: 0.106
+ enable: 0.106
+ facilitate: 0.057" style="background-color: rgb(254, 247, 177); color: black;"> make</span><span class="json-token" data-tooltip=" it: 0.688
+ finding: 0.287
+ navigating: 0.007
+ searching: 0.006
+ media: 0.004" style="background-color: rgb(171, 219, 109); color: black;"> it</span><span class="json-token" data-tooltip=" easier: 0.999
+ simpler: 0.001
+ easy: 0.000
+ more: 0.000
+ convenient: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> easier</span><span class="json-token" data-tooltip=" to: 0.798
+ for: 0.202
+ than: 0.000
+ finding: 0.000
+ find: 0.000" style="background-color: rgb(102, 189, 99); color: black;"> to</span><span class="json-token" data-tooltip=" find: 0.995
+ locate: 0.002
+ navigate: 0.001
+ play: 0.001
+ search: 0.000" style="background-color: rgb(1, 105, 55); color: white;"> find</span><span class="json-token" data-tooltip=" specific: 0.609
+ songs: 0.224
+ individual: 0.154
+ and: 0.010
+ tracks: 0.002" style="background-color: rgb(213, 237, 136); color: black;"> specific</span><span class="json-token" data-tooltip=" songs: 0.968
+ tracks: 0.026
+ media: 0.004
+ content: 0.002
+ items: 0.000" style="background-color: rgb(8, 119, 62); color: white;"> songs</span><span ,="" 0.005"="" 0.013="" 0.052="" 0.109="" :="" and:="" class="json-token" data-tooltip=" or: 0.806
+." in:="" style="background-color: rgb(96, 186, 97); color: black;" within:=""> or</span><span class="json-token" data-tooltip=" movies: 0.817
+ films: 0.182
+ information: 0.001
+ request: 0.000
+ movie: 0.000" style="background-color: rgb(87, 181, 95); color: black;"> movies</span><span ,="" 0.010"="" 0.012="" 0.029="" 0.406="" 0.521="" :="" by:="" class="json-token" data-tooltip="." just:="" style="background-color: rgb(246, 251, 179); color: black;" through:="" using:="">.",<br/></span><span 0.000"="" :="" class="json-token" data-tooltip=" : 1.000
   : 0.000
   
 : 0.000
@@ -8313,23 +8349,18 @@ mentioned: 0.000
  length: 0.000
 Length: 0.000
 _length: 0.000" style="background-color: rgb(0, 104, 55); color: white;">length</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span 0.000="" 0.000"="" 100:="" :="" class="json-token" data-tooltip=" : 1.000
- " null:="" style="background-color: rgb(0, 104, 55); color: white;"> </span><span class="json-token" data-tooltip="102: 0.037
-103: 0.037
-104: 0.032
-109: 0.025
-106: 0.025" style="background-color: rgb(182, 16, 38); color: white;">102</span><span class="json-token" data-tooltip="5: 0.151
-0: 0.118
-4: 0.118
-3: 0.104
-6: 0.104" style="background-color: rgb(229, 77, 52); color: white;">5</span><span class="json-token" data-tooltip=",
+ " null:="" style="background-color: rgb(0, 104, 55); color: white;"> </span><span class="json-token" data-tooltip="350: 0.020
+366: 0.020
+367: 0.018
+348: 0.018
+360: 0.016" style="background-color: rgb(174, 9, 38); color: white;">350</span><span class="json-token" data-tooltip=",
 : 1.000
 ,: 0.000
+0: 0.000
 ,
 : 0.000
 ,
 
-: 0.000
- ,
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;">,<br/></span><span 0.000"="" :="" class="json-token" data-tooltip=" : 1.000
   : 0.000
   
@@ -8341,9 +8372,9 @@ mentions: 0.000
  mentioned: 0.000
 listed: 0.000" style="background-color: rgb(0, 104, 55); color: white;">mentioned</span><span class="json-token" data-tooltip="_entities: 1.000
 Entities: 0.000
+ entities: 0.000
 _entries: 0.000
-_elements: 0.000
- entities: 0.000" style="background-color: rgb(0, 104, 55); color: white;">_entities</span><span ":[:="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span class="json-token" data-tooltip=" [
+_elements: 0.000" style="background-color: rgb(0, 104, 55); color: white;">_entities</span><span ":[:="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span class="json-token" data-tooltip=" [
 : 1.000
  [{
 : 0.000
@@ -8366,23 +8397,31 @@ _elements: 0.000
 type: 0.000
  name: 0.000
 .name: 0.000
-Name: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="BT: 1.000
-Andrew: 0.000
-British: 0.000
-bt: 0.000
-BBC: 0.000" style="background-color: rgb(0, 104, 55); color: white;">BT</span><span ",="" ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" group:="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
+Name: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ""::="" ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Sc: 0.984
+Gr: 0.016
+Ross: 0.000
+sc: 0.000
+Scan: 0.000" style="background-color: rgb(4, 111, 58); color: white;">Sc</span><span class="json-token" data-tooltip="ans: 1.000
+anso: 0.000
+isoft: 0.000
+anset: 0.000
+ANS: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ans</span><span class="json-token" data-tooltip="oft: 1.000
+soft: 0.000
+ oft: 0.000
+ift: 0.000
+Soft: 0.000" style="background-color: rgb(0, 104, 55); color: white;">oft</span><span ",="" ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
-       : 0.000
     : 0.000
-   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
+       : 0.000
+   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" "type:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
  type: 0.000
 .type: 0.000
 tipo: 0.000
 Type: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="company: 1.000
  company: 0.000
-team: 0.000
+country: 0.000
 Company: 0.000
-organization: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span "="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+person: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span "="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
     : 0.000
      : 0.000
@@ -8399,8 +8438,7 @@ organization: 0.000" style="background-color: rgb(0, 104, 55); color: white;">co
   : 0.000
     : 0.000
 	: 0.000
-    
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" {
+     : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" {
 : 1.000
  {: 0.000
  {
@@ -8412,88 +8450,102 @@ organization: 0.000" style="background-color: rgb(0, 104, 55); color: white;">co
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
        : 0.000
       : 0.000
-   : 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
+    : 0.000
+   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
 type: 0.000
  name: 0.000
-title: 0.000
-na: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ""::="" ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ".:="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="BBC: 0.650
-Andrew: 0.348
-London: 0.000
-The: 0.000
-BB: 0.000" style="background-color: rgb(191, 227, 122); color: black;">BBC</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
-    : 0.000
+na: 0.000
+nam: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "<:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Gr: 1.000
+ Gr: 0.000
+Grace: 0.000
+gr: 0.000
+G: 0.000" style="background-color: rgb(0, 104, 55); color: white;">Gr</span><span class="json-token" data-tooltip="acen: 1.000
+ancen: 0.000
+aven: 0.000
+asen: 0.000
+anen: 0.000" style="background-color: rgb(0, 104, 55); color: white;">acen</span><span class="json-token" data-tooltip="ote: 1.000
+otes: 0.000
+one: 0.000
+ot: 0.000
+ode: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ote</span><span ",="" ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
    : 0.000
-       : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
+    : 0.000
+       : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
  type: 0.000
 ty: 0.000
 tipo: 0.000
-types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="company: 1.000
-organization: 0.000
-corpor: 0.000
-media: 0.000
- company: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
-  : 0.000
-    : 0.000
-     : 0.000
-	: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
-: 1.000
- },: 0.000
- }
-: 0.000
- },
-: 0.000
- },
-
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
-  : 0.000
-    : 0.000
-	: 0.000
-    
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" {
-: 1.000
- {: 0.000
- {
-: 0.000
- [
-: 0.000
- {
-
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
-      : 0.000
-       : 0.000
-   : 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
-type: 0.000
- name: 0.000
-title: 0.000
-na: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Andrew: 0.887
-London: 0.064
-Of: 0.021
-And: 0.014
-IP: 0.007" style="background-color: rgb(33, 155, 81); color: white;">Andrew</span><span class="json-token" data-tooltip=" Burke: 1.000
- Bur: 0.000
- bur: 0.000
-Bur: 0.000
- BUR: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Burke</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
-      : 0.000
-    : 0.000
-   : 0.000
-       : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
-ty: 0.000
-typ: 0.000
- type: 0.000
-tipo: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="person: 1.000
- person: 0.000
-personal: 0.000
-Person: 0.000
-persona: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</span><span "="" ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="company: 1.000
+ company: 0.000
+公司: 0.000
+Company: 0.000
+companies: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
     : 0.000
      : 0.000
     
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
+: 1.000
+ },: 0.000
+ },
+
+: 0.000
+ }
+: 0.000
+ },
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
+  : 0.000
+    : 0.000
+	: 0.000
+    
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000"="" :="" class="json-token" data-tooltip=" {
+: 1.000
+ {: 0.000
+ {
+: 0.000
+ [
+: 0.000
+ {" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
+      : 0.000
+       : 0.000
+   : 0.000
+    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
+type: 0.000
+ name: 0.000
+title: 0.000
+named: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Ross: 0.751
+Apple: 0.244
+i: 0.004
+ross: 0.001
+apple: 0.001" style="background-color: rgb(132, 202, 102); color: black;">Ross</span><span class="json-token" data-tooltip=" Bl: 1.000
+ blanch: 0.000
+Bl: 0.000
+ Blanche: 0.000
+-Bl: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Bl</span><span class="json-token" data-tooltip="anch: 1.000
+ach: 0.000
+an: 0.000
+ans: 0.000
+asch: 0.000" style="background-color: rgb(0, 104, 55); color: white;">anch</span><span class="json-token" data-tooltip="ard: 1.000
+ardt: 0.000
+ards: 0.000
+ARD: 0.000
+ ard: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ard</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
+      : 0.000
+    : 0.000
+   : 0.000
+       : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
+ty: 0.000
+ type: 0.000
+tipo: 0.000
+typ: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="person: 1.000
+ person: 0.000
+personal: 0.000
+Person: 0.000
+persona: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</span><span ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+  : 0.000
+    : 0.000
+     : 0.000
+ : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
 : 1.000
  },: 0.000
  }
@@ -8518,32 +8570,20 @@ persona: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person<
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
        : 0.000
-   : 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
+    : 0.000
+   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
 type: 0.000
 title: 0.000
-na: 0.000
- name: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Rah: 0.950
-IP: 0.022
-London: 0.022
-Of: 0.003
-IPL: 0.001" style="background-color: rgb(12, 126, 66); color: white;">Rah</span><span class="json-token" data-tooltip="ul: 1.000
-UL: 0.000
- ul: 0.000
-ulk: 0.000
-oul: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ul</span><span class="json-token" data-tooltip=" Ch: 1.000
- Chak: 0.000
-Ch: 0.000
- ch: 0.000
- Chalk: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Ch</span><span class="json-token" data-tooltip="akk: 1.000
-akka: 0.000
-akh: 0.000
-ack: 0.000
-akker: 0.000" style="background-color: rgb(0, 104, 55); color: white;">akk</span><span class="json-token" data-tooltip="ara: 1.000
-ar: 0.000
-ra: 0.000
-era: 0.000
-araa: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ara</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
+ name: 0.000
+nam: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Alan: 0.835
+Apple: 0.164
+i: 0.000
+Allen: 0.000
+Steve: 0.000" style="background-color: rgb(75, 175, 92); color: black;">Alan</span><span class="json-token" data-tooltip=" Schwartz: 1.000
+ Schwarz: 0.000
+ Schw: 0.000
+ Sch: 0.000
+ Schultz: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Schwartz</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
     : 0.000
    : 0.000
@@ -8551,11 +8591,11 @@ araa: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ara</span>
  type: 0.000
 ty: 0.000
 tipo: 0.000
-typ: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="person: 1.000
-personal: 0.000
+types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="person: 1.000
  person: 0.000
+personal: 0.000
 persona: 0.000
-people: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</span><span "="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+company: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</span><span "="" ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
     : 0.000
  : 0.000
@@ -8570,45 +8610,39 @@ people: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</
  },
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
+ : 0.000
     : 0.000
-	: 0.000
     
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000"="" :="" class="json-token" data-tooltip=" {
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000="" 0.000"="" :="" class="json-token" data-tooltip=" {
 : 1.000
  {: 0.000
  {
 : 0.000
- {},
-: 0.000
- {" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
+ {" style="background-color: rgb(0, 104, 55); color: white;" {=""> {<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
        : 0.000
    : 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" "@:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
+    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
 type: 0.000
  name: 0.000
-description: 0.000
-title: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Of: 0.501
-Th: 0.442
-B: 0.028
-IP: 0.006
-Skype: 0.006" style="background-color: rgb(254, 254, 189); color: black;">Of</span><span class="json-token" data-tooltip="com: 1.000
-Com: 0.000
-gem: 0.000
-COM: 0.000
-con: 0.000" style="background-color: rgb(0, 104, 55); color: white;">com</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
+title: 0.000
+nam: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Apple: 0.949
+i: 0.047
+El: 0.003
+apple: 0.001
+el: 0.000" style="background-color: rgb(13, 128, 67); color: white;">Apple</span><span 's:="" ,="" 0.000="" 0.000"="" 0.001="" 0.999="" :="" class="json-token" data-tooltip="" i:="" inc:="" style="background-color: rgb(0, 104, 55); color: white;" ’s:="">",<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
     : 0.000
-       : 0.000
-   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
+   : 0.000
+       : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
  type: 0.000
-tipo: 0.000
 ty: 0.000
-typ: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "="" ""="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="company: 0.810
-organization: 0.181
-organisation: 0.008
-government: 0.001
-location: 0.000" style="background-color: rgb(93, 184, 96); color: black;">company</span><span "="" ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+tipo: 0.000
+types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="company: 1.000
+country: 0.000
+ company: 0.000
+corpor: 0.000
+team: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span "="" ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
     : 0.000
  : 0.000
@@ -8624,157 +8658,117 @@ location: 0.000" style="background-color: rgb(93, 184, 96); color: black;">compa
 : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
     : 0.000
-	: 0.000
+     : 0.000
     
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" {
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000"="" :="" class="json-token" data-tooltip=" {
 : 1.000
  {: 0.000
  {
 : 0.000
  [
 : 0.000
- {},
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
+ {" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
        : 0.000
     : 0.000
-   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
+   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "@:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
 type: 0.000
  name: 0.000
 description: 0.000
-nam: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Th: 0.568
-B: 0.390
-Ben: 0.017
-Skype: 0.009
-Europe: 0.008" style="background-color: rgb(228, 244, 155); color: black;">Th</span><span class="json-token" data-tooltip="ales: 1.000
-al: 0.000
-ALES: 0.000
-ames: 0.000
-ale: 0.000" style="background-color: rgb(0, 104, 55); color: white;">ales</span><span ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" broadband:="" class="json-token" data-tooltip="" group:="" style="background-color: rgb(0, 104, 55); color: white;" telecom:="">",<br/></span><span class="json-token" data-tooltip="     : 1.000
-      : 0.000
+title: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" "\":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="i: 0.952
+El: 0.047
+IP: 0.000
+ip: 0.000
+IT: 0.000" style="background-color: rgb(12, 126, 66); color: white;">i</span><span class="json-token" data-tooltip="Pod: 0.963
+Tunes: 0.037
+Pods: 0.000
+Tune: 0.000
+P: 0.000" style="background-color: rgb(9, 120, 63); color: white;">Pod</span><span ",="" ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" music:="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
     : 0.000
+      : 0.000
    : 0.000
        : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
  type: 0.000
 ty: 0.000
-typ: 0.000
-tipo: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="company: 1.000
- company: 0.000
-公司: 0.000
-Company: 0.000
-team: 0.000" style="background-color: rgb(0, 104, 55); color: white;">company</span><span "="" ",="" ":="" ."="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+tipo: 0.000
+typ: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "="" ""="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="product: 0.850
+company: 0.148
+location: 0.001
+device: 0.001
+brand: 0.000" style="background-color: rgb(63, 170, 89); color: black;">product</span><span ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" person:="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
-    : 0.000
  : 0.000
-	: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
-: 0.562
+    : 0.000
+     : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
+: 1.000
  }
-: 0.438
+: 0.000
  },: 0.000
- }: 0.000
  },
 
-: 0.000" style="background-color: rgb(231, 245, 159); color: black;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
+: 0.000
+ },
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
- : 0.000
     : 0.000
-     : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" {
+ : 0.000
+	: 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000"="" :="" class="json-token" data-tooltip=" {
 : 1.000
  {: 0.000
  {
 : 0.000
 {
 : 0.000
- 
-: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
+ {" style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
        : 0.000
     : 0.000
-   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "$:="" "@:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="name: 1.000
+   : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
 type: 0.000
  name: 0.000
-description: 0.000
-country: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "",="" "[:="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="Europe: 0.500
-UK: 0.344
-Skype: 0.077
-IP: 0.041
-Sky: 0.015" style="background-color: rgb(254, 254, 189); color: black;">Europe</span><span ",="" ",:="" 's:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
-      : 0.000
-       : 0.000
-    : 0.000
-         : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" type:="" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
- type: 0.000
-ty: 0.000
-typ: 0.000
-types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="continent: 0.408
-location: 0.318
-country: 0.248
-region: 0.026
-continental: 0.000" style="background-color: rgb(254, 226, 143); color: black;">continent</span><span ",="" ":="" 0.000="" 0.000"="" 0.026="" 0.974="" :="" class="json-token" data-tooltip="" style="background-color: rgb(6, 115, 60); color: white;" uk:="">"<br/></span><span class="json-token" data-tooltip="   : 1.000
-  : 0.000
-    : 0.000
- : 0.000
-     : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" },
-: 0.991
- }
-: 0.009
- },: 0.000
- },
-
-: 0.000
- }: 0.000" style="background-color: rgb(2, 107, 56); color: white;"> },<br/></span><span class="json-token" data-tooltip="   : 1.000
- : 0.000
-  : 0.000
-    
-: 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span 0.000"="" :="" class="json-token" data-tooltip=" {
-: 1.000
- {: 0.000
- //: 0.000
- {
-: 0.000
- " style="background-color: rgb(0, 104, 55); color: white;"> {<br/></span><span class="json-token" data-tooltip="     : 1.000
-      : 0.000
-       : 0.000
-   : 0.000
-    : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="name: 1.000
-type: 0.000
- name: 0.000
-description: 0.000
-title: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "",="" "':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="UK: 0.954
-London: 0.042
-United: 0.001
-Sky: 0.001
-Skype: 0.001" style="background-color: rgb(11, 124, 65); color: white;">UK</span><span ",="" ",:="" ,="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" homes:="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
+title: 0.000
+nam: 0.000" style="background-color: rgb(0, 104, 55); color: white;">name</span><span ":":="" "::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "':="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="El: 1.000
+el: 0.000
+EL: 0.000
+ Elvis: 0.000
+English: 0.000" style="background-color: rgb(0, 104, 55); color: white;">El</span><span class="json-token" data-tooltip="vis: 1.000
+v: 0.000
+ivs: 0.000
+ Elvis: 0.000
+ vis: 0.000" style="background-color: rgb(0, 104, 55); color: white;">vis</span><span class="json-token" data-tooltip=" Presley: 1.000
+ Pres: 0.000
+ pres: 0.000
+ Prescott: 0.000
+ PRES: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> Presley</span><span ",="" ",:="" ,="" .",="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">",<br/></span><span class="json-token" data-tooltip="     : 1.000
       : 0.000
     : 0.000
    : 0.000
        : 0.000" style="background-color: rgb(0, 104, 55); color: white;">     </span><span "_:="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="type: 1.000
  type: 0.000
-types: 0.000
+ty: 0.000
 tipo: 0.000
-typ: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" '::="" 0.000="" 0.000"="" 1.000="" ::="" \"::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span "="" ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;"> "</span><span class="json-token" data-tooltip="country: 1.000
-location: 0.000
-county: 0.000
- country: 0.000
-countries: 0.000" style="background-color: rgb(0, 104, 55); color: white;">country</span><span "="" ",="" ":="" "}="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
+types: 0.000" style="background-color: rgb(0, 104, 55); color: white;">type</span><span ":":="" "::="" '::="" 0.000="" 0.000"="" 1.000="" ::="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;" ”::="">":</span><span ':="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip=" " null:="" style="background-color: rgb(0, 104, 55); color: white;" “:=""> "</span><span class="json-token" data-tooltip="person: 1.000
+artist: 0.000
+ person: 0.000
+personal: 0.000
+persona: 0.000" style="background-color: rgb(0, 104, 55); color: white;">person</span><span "="" ",="" ":="" 0.000="" 0.000"="" 1.000="" :="" class="json-token" data-tooltip="" style="background-color: rgb(0, 104, 55); color: white;">"<br/></span><span class="json-token" data-tooltip="   : 1.000
   : 0.000
+ : 0.000
     : 0.000
-     : 0.000
- : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" }
-: 0.755
+     : 0.000" style="background-color: rgb(0, 104, 55); color: white;">   </span><span class="json-token" data-tooltip=" }
+: 0.977
  },
-: 0.245
+: 0.023
  }: 0.000
- },: 0.000
  }
 
-: 0.000" style="background-color: rgb(129, 201, 102); color: black;"> }<br/></span><span class="json-token" data-tooltip=" : 1.000
+: 0.000
+ },: 0.000" style="background-color: rgb(5, 113, 59); color: white;"> }<br/></span><span class="json-token" data-tooltip=" : 1.000
   : 0.000
    : 0.000
+ : 0.000
     
-: 0.000
- : 0.000" style="background-color: rgb(0, 104, 55); color: white;"> </span><span class="json-token" data-tooltip=" ]
+: 0.000" style="background-color: rgb(0, 104, 55); color: white;"> </span><span class="json-token" data-tooltip=" ]
 : 1.000
  ]: 0.000
  ]
@@ -8807,8 +8801,10 @@ countries: 0.000" style="background-color: rgb(0, 104, 55); color: white;">count
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="Demo:-Using-OpenAI-Structured-Output">Demo: Using OpenAI Structured Output<a class="anchor-link" href="#Demo:-Using-OpenAI-Structured-Output">¶</a></h2><ul>
-<li>Modern models like GPT-4o and GPT-4.1 support structured output to force the output to a specific schema</li>
+<li>Modern OpenAI models can force a specified JSON output schema</li>
 <li>Only tokens that are a valid part of the schema are allowed</li>
+<li>Released in August 2024</li>
+<li>Supported by GPT-4o and GPT-4.1 as well as reasoning models like o3 and o4-mini</li>
 <li>Specifying the schema can be done by either a JSON Schema or Pydantic model in Python</li>
 </ul>
 </div>
@@ -8830,7 +8826,7 @@ countries: 0.000" style="background-color: rgb(0, 104, 55); color: white;">count
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">STRUCTURED_EXTRACTION_PROMPT</span> <span class="o">=</span> <span class="s2">"""</span>
@@ -9006,7 +9002,7 @@ countries: 0.000" style="background-color: rgb(0, 104, 55); color: white;">count
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [19]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">response</span> <span class="o">=</span> <span class="n">generate_structured_and_visualize_json</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
